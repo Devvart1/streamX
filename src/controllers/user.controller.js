@@ -19,15 +19,15 @@ const registerUser = asyncHandler(async (req, res) => {
   // if (fullName == "") {
   //   throw new ApiError(400, "full name is empty");
   // }
-  console.log("Email", email);
   if (
     [fullName, email, username, password].some((item) => item?.trim() === "")
   ) {
     throw new ApiError(400, "All fields are required");
   }
-  const existedUser = User.findOne({
-    $or: [{ email }, { usename }],
+  const existedUser = await User.findOne({
+    $or: [{ email }, { username }],
   });
+
   if (existedUser) {
     throw new ApiError(
       409,
@@ -35,7 +35,16 @@ const registerUser = asyncHandler(async (req, res) => {
     );
   }
   const avatarLocalPAth = req.files?.avatar[0]?.path;
-  const coverImagePath = req.files?.coverImage?.[0]?.path;
+  // const coverImagePath = req.files?.coverImage[0]?.path;
+  let coverImagePath;
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImagePath = req.files.coverImage[0].path;
+  }
+
   if (!avatarLocalPAth) {
     throw new ApiError(400, "Avatar file is required");
   }
@@ -52,12 +61,15 @@ const registerUser = asyncHandler(async (req, res) => {
     avatar: avatar?.secure_url || "",
     coverImage: coverImage?.secure_url,
   });
+
   const createdUser = await User.findById(user._id).select(
-    "-password - refreshToken"
+    "-password -refreshToken"
   );
+
   if (!createdUser) {
     throw new ApiError(500, "Something went wrong while registering the user");
   }
+
   return res
     .status(201)
     .json(new ApiResponse(200, createdUser, "User registered Successfully"));
