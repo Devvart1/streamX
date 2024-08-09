@@ -104,16 +104,35 @@ const loginUser = asyncHandler(async (req, res) => {
   */
 
   const { email, username, password } = req.body;
-
-  if (!username || !email) {
-    throw new ApiError(400, "username or email is required");
+  // console.log("email : ",email);
+  if (!username && !email) {
+    throw new ApiError(400, "Username or email is required");
   }
+  if (!password) {
+    throw new ApiError(400, "password is required");
+  }
+  let user;
+  if (username) {
+    user = await User.findOne({ username });
+    if (!user) {
+      throw new ApiError(404, "Username  does not exist");
+    }
+  }
+  if (email) {
+    user = await User.findOne({ email });
+    if (!user) {
+      throw new ApiError(404, "User with email does not exist");
+    }
+  }
+  /*
   const user = await User.findOne({
     $or: [{ username }, { email }],
   });
+
   if (!user) {
     throw new ApiError(404, "User does not exist");
   }
+  */
   const isPasswordValit = await user.isPasswordCorrect(password);
   if (!isPasswordValit) {
     throw new ApiError(400, "Invalid User Credentials");
@@ -123,11 +142,12 @@ const loginUser = asyncHandler(async (req, res) => {
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
-
+  console.log({ accessToken, refreshToken });
   const Options = {
     httpOnly: true,
     secure: true,
   };
+  console.log("User Logged in successfully");
   return res
     .status(200)
     .cookie("accessToken", accessToken, Options)
@@ -158,10 +178,11 @@ const logoutUser = asyncHandler((req, res) => {
     httpOnly: true,
     secure: true,
   };
+  console.log("User logged out");
   return res
     .status(200)
     .clearCookie("accessToken", Options)
     .clearCookie("refreshToken", Options)
-    .json(new ApiResponse(200, {}, "User logged out"));
+    .json(new ApiResponse(200, {}, "User logged out  "));
 });
 export { registerUser, loginUser, logoutUser };
