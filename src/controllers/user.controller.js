@@ -18,6 +18,7 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
     );
   }
 };
+
 const registerUser = asyncHandler(async (req, res) => {
   /*  get user details from frontend
   velidation - not empty
@@ -140,4 +141,27 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
-export { registerUser, loginUser };
+const logoutUser = asyncHandler((req, res) => {
+  User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        refreshToken: undefined,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+
+  const Options = {
+    httpOnly: true,
+    secure: true,
+  };
+  return res
+    .status(200)
+    .clearCookie("accessToken", Options)
+    .clearCookie("refreshToken", Options)
+    .json(new ApiResponse(200, {}, "User logged out"));
+});
+export { registerUser, loginUser, logoutUser };
