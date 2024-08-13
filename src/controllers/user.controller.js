@@ -35,9 +35,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
   const { fullName, email, username, password } = req.body;
 
-  // if (fullName == "") {
-  //   throw new ApiError(400, "full name is empty");
-  // }
   if (
     [fullName, email, username, password].some((item) => item?.trim() === "")
   ) {
