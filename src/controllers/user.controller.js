@@ -4,6 +4,7 @@ import User from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/fileUpload.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import e from "express";
 const generateAccessTokenAndRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -183,6 +184,7 @@ const logoutUser = asyncHandler((req, res) => {
     .clearCookie("refreshToken", Options)
     .json(new ApiResponse(200, {}, "User logged out  "));
 });
+
 const refreshAccesstoken = asyncHandler(async (req, res) => {
   const incomingRefreshToken = re.cookies.refreshToken || req.body.refreshToken;
   if (!incomingRefreshToken) {
@@ -222,4 +224,52 @@ const refreshAccesstoken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccesstoken };
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldpassword, newpassword, confpassword } = req.body;
+  if (!(newpassword == confpassword)) {
+    throw new ApiError(400, "Password does not match");
+  }
+  const user = User.findById(req.user?._id);
+  const isPasswordValid = await user.isPasswordCorrect(oldpassword);
+  if (!isPasswordValid) {
+    throw new ApiError(400, "Invalid Password");
+  }
+  user.password = newpassword;
+  await user.save({ validateBeforeSave: false });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(200, res.user, "Current User details fetched successfully");
+});
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+  if (!fullName || !email) {
+    throw new ApiError(400, "All fields are required");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        fullName: fullName,
+        email: email,
+      },
+    },
+    { new: true }
+  ).select("-password -refreshToken ");
+  return res.status(200).json(200, user, "User details updated successfully");
+});
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccesstoken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+};
