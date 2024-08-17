@@ -4,6 +4,7 @@ import User from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/fileUpload.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateAccessTokenAndRefreshToken = async (userId) => {
   try {
@@ -136,7 +137,11 @@ const loginUser = asyncHandler(async (req, res) => {
   */
   // check if user already logged in
 
-  if (user.refreshToken === req.cookies.refreshToken) {
+  if (
+    user.refreshToken ===
+    (req.cookies?.refreshToken ||
+      req.header("Authorization")?.replace("Bearer ", ""))
+  ) {
     console.log("User already logged in");
     throw new ApiError(400, "User already logged in");
   }
@@ -201,15 +206,17 @@ const logoutUser = asyncHandler((req, res) => {
 });
 
 const refreshAccesstoken = asyncHandler(async (req, res) => {
-  const incomingRefreshToken = re.cookies.refreshToken || req.body.refreshToken;
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
   if (!incomingRefreshToken) {
     throw new ApiError(401, "unauthorized request");
   }
   try {
-    const decodedToken = jwt.verify(
+    const decodedToken = await jwt.verify(
       incomingRefreshToken,
-      process.env.ACCESS_TOKEN_SECRET
+      process.env.REFRESH_TOKEN_SECRET
     );
+
     const user = await User.findById(decodedToken._id);
     if (!user) {
       throw new ApiError(401, "Invalid refresh token");
