@@ -127,25 +127,15 @@ const loginUser = asyncHandler(async (req, res) => {
     }
   }
   /*
-  const user = await User.findOne({
-    $or: [{ username }, { email }],
-  });
-
-  if (!user) {
-    throw new ApiError(404, "User does not exist");
-  }
-  */
-  // check if user already logged in
-
-  if (
-    user.refreshToken ===
-    (req.cookies?.refreshToken ||
-      req.header("Authorization")?.replace("Bearer ", ""))
-  ) {
-    console.log("User already logged in");
-    throw new ApiError(400, "User already logged in");
-  }
-
+  // if (
+  //   user.refreshToken ===
+  //   (req.cookies?.refreshToken ||
+  //     req.header("Authorization")?.replace("Bearer ", ""))
+  // ) {
+  //   console.log("User already logged in");
+  //   throw new ApiError(400, "User already logged in");
+  // }
+*/
   const isPasswordValit = await user.isPasswordCorrect(password);
   if (!isPasswordValit) {
     throw new ApiError(400, "Invalid User Credentials");
@@ -251,12 +241,20 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
   if (!(newpassword == confpassword)) {
     throw new ApiError(400, "Password does not match");
   }
-  const user = User.findById(req.user?._id);
+  console.log("oldpassword : ", oldpassword);
+  console.log("newpassword : ", newpassword);
+  console.log("confpassword : ", confpassword);
+
+  const user = await User.findById(req.user?._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
   const isPasswordValid = await user.isPasswordCorrect(oldpassword);
   if (!isPasswordValid) {
     throw new ApiError(400, "Invalid Password");
   }
   user.password = newpassword;
+  console.log("Password changed successfully to", user.password);
   await user.save({ validateBeforeSave: false });
   return res
     .status(200)
