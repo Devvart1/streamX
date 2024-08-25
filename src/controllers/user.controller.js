@@ -142,9 +142,11 @@ const loginUser = asyncHandler(async (req, res) => {
   }
   const { accessToken, refreshToken } =
     await generateAccessTokenAndRefreshToken(user._id);
+
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
+
   // console.log({ accessToken, refreshToken });
   const Options = {
     httpOnly: true,
@@ -262,15 +264,21 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
 });
 
 const getCurrentUser = asyncHandler(async (req, res) => {
+  // console.log(req.user);
+  console.log("Current User details fetched successfully");
   return res
     .status(200)
-    .json(200, res.user, "Current User details fetched successfully");
+    .json(200, req.user, "Current User details fetched successfully");
 });
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
   const { fullName, email } = req.body;
   if (!fullName || !email) {
     throw new ApiError(400, "All fields are required");
+  }
+  const checkEmail = await User.findOne({ email });
+  if (checkEmail) {
+    throw new ApiError(400, "Email already exist");
   }
   const user = await User.findByIdAndUpdate(
     req.user._id,
@@ -282,6 +290,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     },
     { new: true }
   ).select("-password -refreshToken ");
+  // console.log("User account details updated successfully", user);
   return res.status(200).json(200, user, "User details updated successfully");
 });
 
@@ -290,18 +299,26 @@ const updateAvatar = asyncHandler(async (req, res) => {
   if (!avatarLocalPAth) {
     throw new ApiError(400, "Avatar file is required");
   }
+
   const avatar = await uploadOnCloudinary(avatarLocalPAth);
   if (!avatar) {
     throw new ApiError(400, "Error while uploading Avatar");
   }
+
   const user = await User.findByIdAndUpdate(req.user?._id, {
     $set: { avatar: avatar.url },
     new: true,
   }).select("-password");
+
+  console.log("Avatar updated successfully");
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar updated successfully"));
 });
 
 const updateUserCoverImage = asyncHandler(async (req, res) => {
-  const coverImageLocalPAth = req.file?.avatar?.path;
+  const coverImageLocalPAth = req.file?.coverImage?.path;
+  console.log("coverImageLocalPAth : ", coverImageLocalPAth);
   if (!coverImageLocalPAth) {
     throw new ApiError(400, "CoverImage file is required");
   }
