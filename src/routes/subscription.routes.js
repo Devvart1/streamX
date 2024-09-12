@@ -7,6 +7,6 @@ const router = Router();
 
 router.use(verifyJWT);
 
-router.route("/subscribe/:chennelId").get(toggleSubscription);
+router.route("/subscribe/:chennelId").post(toggleSubscription);
 
 export default router;
