@@ -7,8 +7,25 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/fileUpload.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+  // const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   //TODO: get all videos based on query, sort, pagination
+  const { page = 1, limit = 10 } = req.query; // Default page is 1 and limit is 10
+
+  const videos = await Video.find()
+    .skip((page - 1) * limit) // Skip videos for previous pages
+    .limit(Number(limit)); // Limit the number of videos returned
+
+  const totalVideos = await Video.countDocuments(); // Count total videos for pagination info
+
+  res.status(200).json(
+    new ApiResponse(200, "Videos fetched", {
+      page: Number(page),
+      limit: Number(limit),
+      totalVideos,
+      totalPages: Math.ceil(totalVideos / limit),
+      videos,
+    })
+  );
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
@@ -58,6 +75,41 @@ const getVideoById = asyncHandler(async (req, res) => {
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: update video details like title, description, thumbnail
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+  if (video.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "User is not authorized to update this video");
+  }
+
+  let { title, description } = req.body;
+  if (!title && !description) {
+    throw new ApiError(400, "Title or description are required");
+  }
+  title = title || video.title;
+  description = description || video.description;
+
+  const thumbnail = req.file;
+  let thumbnailUrl = thumbnail
+    ? await uploadOnCloudinary(thumbnail.path)
+    : null;
+  if (!thumbnailUrl) {
+    thumbnailUrl = video.thumbnail;
+  }
+
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      title,
+      description,
+      thumbnail: thumbnailUrl?.url,
+    },
+    { new: true }
+  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Video updated", updatedVideo));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -67,17 +119,27 @@ const deleteVideo = asyncHandler(async (req, res) => {
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
-  await video.remove();
-  await video.save();
+
+  if (video.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "User is not authorized to delete this video");
+  }
+
+  await Video.deleteOne({ _id: video._id });
+
   res.status(200).json(new ApiResponse(200, "Video deleted successfully"));
 });
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   const video = await Video.findById(videoId);
+
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
+  if (video.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "User is not authorized to update this video");
+  }
+
   video.isPublished = !video.isPublished;
   await video.save();
   res.status(200).json(new ApiResponse(200, "Video publish status updated"));
