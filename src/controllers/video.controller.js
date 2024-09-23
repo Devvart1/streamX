@@ -7,8 +7,23 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/fileUpload.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+  // const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+  const { page = 1, limit = 3 } = req.query; 
   //TODO: get all videos based on query, sort, pagination
+  const videos = await Video.find()
+  .skip((page - 1) * limit) // Skip videos for previous pages
+  .limit(Number(limit)); // Limit the number of videos returned
+
+const totalVideos = await Video.countDocuments(); // Count total videos for pagination info
+
+res.status(200).json(new ApiResponse(200,"Video fetched",{
+  page: Number(page),
+  limit: Number(limit),
+  totalVideos,
+  totalPages: Math.ceil(totalVideos / limit),
+  videos,
+}));
+
 });
 
 const publishAVideo = asyncHandler(async (req, res) => {
