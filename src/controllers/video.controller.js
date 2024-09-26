@@ -70,8 +70,35 @@ const getVideoById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Video fetched successfully", video));
 });
 
+
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const { newTitle, description, thumbnail } = req.body;
+
+  // Check if the video exists
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  // Check if the user is authorized to update the video
+  if (video.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "User is not authorized to update this video");
+  }
+
+  // Update the video using findByIdAndUpdate
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      title: newTitle || video.title, // Use new title if provided, else retain the old one
+      description: description || video.description, // Use new description if provided, else retain the old one
+      thumbnail: thumbnail || video.thumbnail, // Use new thumbnail if provided, else retain the old one
+    },
+    { new: true } // This option returns the updated document
+  );
+
+  // Return the updated video
+  res.status(200).json(new ApiResponse(200, "Video updated successfully", updatedVideo));
   //TODO: update video details like title, description, thumbnail
 });
 
