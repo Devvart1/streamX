@@ -15,7 +15,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
 })
 
-const toggleTweetLike = asyncHandler(async (req, res) => {
+const togglePostLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
     //TODO: toggle like on tweet
 }
@@ -27,7 +27,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
 
 export {
     toggleCommentLike,
-    toggleTweetLike,
+    togglePostLike,
     toggleVideoLike,
     getLikedVideos
 }
