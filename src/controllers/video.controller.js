@@ -73,10 +73,24 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  const { newTitle, description, thumbnail } = req.body;
+  const { newTitle, description } = req.body;
 
   // Check if the video exists
+  // TODO: get video, upload to cloudinary, create video
+  // if (!newTitle || !description) {
+  //   throw new ApiError(400, "Title or description is required");
+  // }
+
+   const thumbnail = req.file?.path;
+
+  // if ( !thumbnail) {
+  //   throw new ApiError(400, "Video file and thumbnail are required");
+  // }
+
+  const thumbnailUrl = await uploadOnCloudinary(thumbnail.path);
+
   const video = await Video.findById(videoId);
+  console.log(video);
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
@@ -92,7 +106,7 @@ const updateVideo = asyncHandler(async (req, res) => {
     {
       title: newTitle || video.title, // Use new title if provided, else retain the old one
       description: description || video.description, // Use new description if provided, else retain the old one
-      thumbnail: thumbnail || video.thumbnail, // Use new thumbnail if provided, else retain the old one
+      thumbnail: thumbnailUrl?.url || video.thumbnail, // Use new thumbnail if provided, else retain the old one
     },
     { new: true } // This option returns the updated document
   );
