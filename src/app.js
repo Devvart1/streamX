@@ -5,6 +5,7 @@ import subscriptionRouter from "./routes/subscription.routes.js";
 import videoRouter from "./routes/video.routes.js";
 import dashboardRouter from "./routes/dashboard.routes.js";
 import likeRouter from "./routes/like.routes.js";
+import commentRouter from "./routes/comment.routes.js";
 const app = express();
 app.use(
   cors({
@@ -31,6 +32,7 @@ app.use("/api/v1/subs", subscriptionRouter);
 app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/dash", dashboardRouter);
 app.use("/api/v1/like", likeRouter);
+app.use("/api/v1/comment", commentRouter);
 
 
 export { app };
