@@ -8,9 +8,8 @@ import { uploadOnCloudinary } from "../utils/fileUpload.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
   // const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+  const { page = 1, limit = 3 } = req.query;
   //TODO: get all videos based on query, sort, pagination
-  const { page = 1, limit = 10 } = req.query; // Default page is 1 and limit is 10
-
   const videos = await Video.find()
     .skip((page - 1) * limit) // Skip videos for previous pages
     .limit(Number(limit)); // Limit the number of videos returned
@@ -18,7 +17,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
   const totalVideos = await Video.countDocuments(); // Count total videos for pagination info
 
   res.status(200).json(
-    new ApiResponse(200, "Videos fetched", {
+    new ApiResponse(200, "Video fetched", {
       page: Number(page),
       limit: Number(limit),
       totalVideos,
@@ -74,6 +73,48 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  const { newTitle, description } = req.body;
+
+  // Check if the video exists
+  // TODO: get video, upload to cloudinary, create video
+  // if (!newTitle || !description) {
+  //   throw new ApiError(400, "Title or description is required");
+  // }
+
+  const thumbnail = req.file?.path;
+
+  // if ( !thumbnail) {
+  //   throw new ApiError(400, "Video file and thumbnail are required");
+  // }
+
+  const thumbnailUrl = await uploadOnCloudinary(thumbnail.path);
+
+  const video = await Video.findById(videoId);
+  console.log(video);
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  // Check if the user is authorized to update the video
+  if (video.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "User is not authorized to update this video");
+  }
+
+  // Update the video using findByIdAndUpdate
+  const updatedVideo = await Video.findByIdAndUpdate(
+    videoId,
+    {
+      title: newTitle || video.title, // Use new title if provided, else retain the old one
+      description: description || video.description, // Use new description if provided, else retain the old one
+      thumbnail: thumbnailUrl?.url || video.thumbnail, // Use new thumbnail if provided, else retain the old one
+    },
+    { new: true } // This option returns the updated document
+  );
+
+  // Return the updated video
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Video updated successfully", updatedVideo));
   //TODO: update video details like title, description, thumbnail
   const video = await Video.findById(videoId);
   if (!video) {
