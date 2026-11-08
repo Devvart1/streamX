@@ -87,10 +87,9 @@ const updateVideo = asyncHandler(async (req, res) => {
   //   throw new ApiError(400, "Video file and thumbnail are required");
   // }
 
-  const thumbnailUrl = await uploadOnCloudinary(thumbnail.path);
+  const thumbnailUrl = thumbnail ? await uploadOnCloudinary(thumbnail) : null;
 
   const video = await Video.findById(videoId);
-  console.log(video);
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
@@ -115,42 +114,6 @@ const updateVideo = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, "Video updated successfully", updatedVideo));
-  //TODO: update video details like title, description, thumbnail
-  const video = await Video.findById(videoId);
-  if (!video) {
-    throw new ApiError(404, "Video not found");
-  }
-  if (video.owner.toString() !== req.user._id.toString()) {
-    throw new ApiError(403, "User is not authorized to update this video");
-  }
-
-  let { title, description } = req.body;
-  if (!title && !description) {
-    throw new ApiError(400, "Title or description are required");
-  }
-  title = title || video.title;
-  description = description || video.description;
-
-  const thumbnail = req.file;
-  let thumbnailUrl = thumbnail
-    ? await uploadOnCloudinary(thumbnail.path)
-    : null;
-  if (!thumbnailUrl) {
-    thumbnailUrl = video.thumbnail;
-  }
-
-  const updatedVideo = await Video.findByIdAndUpdate(
-    videoId,
-    {
-      title,
-      description,
-      thumbnail: thumbnailUrl?.url,
-    },
-    { new: true }
-  );
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Video updated", updatedVideo));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {
